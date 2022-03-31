@@ -8,10 +8,49 @@ pub enum CalculatorInput {
 }
 
 pub fn evaluate(inputs: &[CalculatorInput]) -> Option<i32> {
-    unimplemented!(
-		"Given the inputs: {:?}, evaluate them as though they were a Reverse Polish notation expression",
-		inputs,
-	);
+    let mut stack: Vec<CalculatorInput> = vec![];
+
+    for input in inputs {
+        match input {
+            CalculatorInput::Value(n) => stack.push(CalculatorInput::Value(*n)),
+            operator @ _ => {
+                let (first, second) = pop_two_elements_from_stack(&mut stack)?;
+                let value = CalculatorInput::Value(calculate(first, second, operator));
+                stack.push(value);
+            }
+        }
+    }
+
+    if let [CalculatorInput::Value(result)] = &stack[..] {
+        Some(*result)
+    } else {
+        None
+    }
+}
+
+fn calculate(a: i32, b: i32, operator: &CalculatorInput) -> i32 {
+    match operator {
+        CalculatorInput::Add => a + b,
+        CalculatorInput::Subtract => a - b,
+        CalculatorInput::Multiply => a * b,
+        CalculatorInput::Divide => a / b,
+        _ => panic!("How did you get here?"),
+    }
+}
+
+fn pop_two_elements_from_stack(vec: &mut Vec<CalculatorInput>) -> Option<(i32, i32)> {
+    let a = pop_value_from_stack(vec)?;
+    let b = pop_value_from_stack(vec)?;
+
+    Some((b, a))
+}
+
+fn pop_value_from_stack(vec: &mut Vec<CalculatorInput>) -> Option<i32> {
+    if let CalculatorInput::Value(v) = vec.pop()? {
+        Some(v)
+    } else {
+        None
+    }
 }
 
 #[cfg(test)]
