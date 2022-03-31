@@ -5,12 +5,52 @@ pub struct Player {
 }
 
 impl Player {
+    const MIN_MANA_ACCESS_LEVEL: u32 = 10;
+    const INITIAL_HEALTH: u32 = 100;
+    const INITIAL_MANA: u32 = 100;
+
     pub fn revive(&self) -> Option<Player> {
-        unimplemented!("Revive this player")
+        if self.health == 0 {
+            Some(Player {
+                health: Player::INITIAL_HEALTH,
+                mana: self.provide_mana_or_none(),
+                ..*self
+            })
+        } else {
+            None
+        }
+    }
+
+    fn provide_mana_or_none(&self) -> Option<u32> {
+        if self.level >= Player::MIN_MANA_ACCESS_LEVEL {
+            Some(Player::INITIAL_MANA)
+        } else {
+            None
+        }
     }
 
     pub fn cast_spell(&mut self, mana_cost: u32) -> u32 {
-        unimplemented!("Cast a spell of cost {}", mana_cost)
+        if let Some(current_mana) = self.mana {
+            let has_enough_mana = current_mana >= mana_cost;
+
+            if has_enough_mana {
+                self.mana = Some(current_mana - mana_cost);
+                2 * mana_cost
+            } else {
+                0
+            }
+        } else {
+            self.decrease_health(mana_cost);
+            0
+        }
+    }
+
+    fn decrease_health(&mut self, health_to_decrease: u32) {
+        if self.health >= health_to_decrease {
+            self.health -= health_to_decrease;
+        } else {
+            self.health = 0;
+        }
     }
 }
 
