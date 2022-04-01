@@ -4,19 +4,128 @@ pub enum Error {
     GameComplete,
 }
 
-pub struct BowlingGame {}
+#[derive(Clone, Copy)]
+pub enum ThrowResult {
+    Normal(u16),
+    Spare(u16),
+    Bonus(u16),
+    Strike,
+}
+
+impl ThrowResult {
+    fn to_score(&self) -> u16 {
+        match self {
+            Self::Normal(n) => *n,
+            Self::Spare(n) => *n,
+            Self::Bonus(n) => *n,
+            Self::Strike => 10,
+        }
+    }
+}
+
+pub struct BowlingGame {
+    frame: u8,
+    is_bonus_throw: bool,
+    threw_in_frame: u8,
+    pins_left: u16,
+    result: Vec<ThrowResult>,
+}
 
 impl BowlingGame {
     pub fn new() -> Self {
-        unimplemented!();
+        Self {
+            frame: 1,
+            is_bonus_throw: false,
+            threw_in_frame: 0,
+            pins_left: 10,
+            result: vec![ThrowResult::Normal(0), ThrowResult::Normal(0)],
+        }
     }
 
     pub fn roll(&mut self, pins: u16) -> Result<(), Error> {
-        unimplemented!("Record that {} pins have been scored", pins);
+        if self.is_game_complete() {
+            return Err(Error::GameComplete);
+        }
+
+        if self.pins_left < pins {
+            return Err(Error::NotEnoughPinsLeft);
+        } else {
+            self.pins_left -= pins;
+        }
+
+        if self.is_bonus_throw {
+            self.result.push(ThrowResult::Bonus(pins))
+        } else if pins == 10 {
+            self.result.push(ThrowResult::Strike)
+        } else if self.pins_left == 0 {
+            self.result.push(ThrowResult::Spare(pins))
+        } else {
+            self.result.push(ThrowResult::Normal(pins))
+        }
+
+        self.threw_in_frame += 1;
+
+        if self.pins_left == 0 && self.frame == 10 {
+            self.set_bonus_throw();
+        }
+
+        if self.should_proceed_to_next_frame() {
+            self.set_new_frame();
+        }
+
+        Ok(())
+    }
+
+    fn set_bonus_throw(&mut self) {
+        self.pins_left = 10;
+        self.is_bonus_throw = true;
+    }
+
+    fn should_proceed_to_next_frame(&self) -> bool {
+        if self.frame == 10 && self.is_bonus_throw {
+            self.threw_in_frame >= 3
+        } else {
+            self.pins_left == 0 || self.threw_in_frame >= 2
+        }
+    }
+
+    fn is_game_complete(&self) -> bool {
+        self.frame > 10
+    }
+
+    fn set_new_frame(&mut self) {
+        self.frame += 1;
+        self.threw_in_frame = 0;
+        self.pins_left = 10;
     }
 
     pub fn score(&self) -> Option<u16> {
-        unimplemented!("Return the score if the game is complete, or None if not.");
+        if self.is_game_complete() {
+            Some(self.calculate_score())
+        } else {
+            None
+        }
+    }
+
+    fn calculate_score(&self) -> u16 {
+        self.result
+            .windows(3)
+            .map(BowlingGame::calculate_score_of_throw)
+            .sum()
+    }
+
+    fn calculate_score_of_throw(x: &[ThrowResult]) -> u16 {
+        let mut score = 0;
+        if let [ThrowResult::Strike, a @ _, b @ _] = x {
+            score += 10 + a.to_score() + b.to_score();
+        }
+        if let [_, ThrowResult::Spare(spare), a @ _] = x {
+            score += spare + a.to_score();
+        }
+        if let [_, _, ThrowResult::Normal(normal)] = x {
+            score += *normal;
+        }
+        score
     }
 }
 
