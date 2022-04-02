@@ -26,7 +26,7 @@ impl ThrowResult {
 pub struct BowlingGame {
     frame: u8,
     is_bonus_throw: bool,
-    threw_in_frame: u8,
+    throws_in_frame: u8,
     pins_left: u16,
     result: Vec<ThrowResult>,
 }
@@ -36,7 +36,7 @@ impl BowlingGame {
         Self {
             frame: 1,
             is_bonus_throw: false,
-            threw_in_frame: 0,
+            throws_in_frame: 0,
             pins_left: 10,
             result: vec![ThrowResult::Normal(0), ThrowResult::Normal(0)],
         }
@@ -47,25 +47,18 @@ impl BowlingGame {
             return Err(Error::GameComplete);
         }
 
-        if self.pins_left < pins {
+        if !self.has_enough_pins(pins) {
             return Err(Error::NotEnoughPinsLeft);
-        } else {
-            self.pins_left -= pins;
         }
 
-        if self.is_bonus_throw {
-            self.result.push(ThrowResult::Bonus(pins))
-        } else if pins == 10 {
-            self.result.push(ThrowResult::Strike)
-        } else if self.pins_left == 0 {
-            self.result.push(ThrowResult::Spare(pins))
-        } else {
-            self.result.push(ThrowResult::Normal(pins))
-        }
+        self.remove_pins(pins);
 
-        self.threw_in_frame += 1;
+        let throw_result = self.get_throw_result_with_pins(pins);
+        self.add_throw_result(throw_result);
 
-        if self.pins_left == 0 && self.frame == 10 {
+        self.increase_throws_in_frame();
+
+        if self.should_proceed_to_bonus_throw() {
             self.set_bonus_throw();
         }
 
@@ -76,16 +69,48 @@ impl BowlingGame {
         Ok(())
     }
 
+    fn increase_throws_in_frame(&mut self) {
+        self.throws_in_frame += 1;
+    }
+
+    fn remove_pins(&mut self, pins: u16) {
+        self.pins_left -= pins;
+    }
+
+    fn add_throw_result(&mut self, throw_result: ThrowResult) {
+        self.result.push(throw_result);
+    }
+
+    fn get_throw_result_with_pins(&self, pins: u16) -> ThrowResult {
+        if self.is_bonus_throw {
+            ThrowResult::Bonus(pins)
+        } else if pins == 10 {
+            ThrowResult::Strike
+        } else if self.pins_left == 0 {
+            ThrowResult::Spare(pins)
+        } else {
+            ThrowResult::Normal(pins)
+        }
+    }
+
+    fn has_enough_pins(&self, pins: u16) -> bool {
+        self.pins_left >= pins
+    }
+
     fn set_bonus_throw(&mut self) {
         self.pins_left = 10;
         self.is_bonus_throw = true;
     }
 
+    fn should_proceed_to_bonus_throw(&self) -> bool {
+        self.pins_left == 0 && self.frame == 10
+    }
+
     fn should_proceed_to_next_frame(&self) -> bool {
         if self.frame == 10 && self.is_bonus_throw {
-            self.threw_in_frame >= 3
+            self.throws_in_frame >= 3
         } else {
-            self.pins_left == 0 || self.threw_in_frame >= 2
+            self.pins_left == 0 || self.throws_in_frame >= 2
         }
     }
 
@@ -95,7 +120,7 @@ impl BowlingGame {
 
     fn set_new_frame(&mut self) {
         self.frame += 1;
-        self.threw_in_frame = 0;
+        self.throws_in_frame = 0;
         self.pins_left = 10;
     }
 
@@ -110,22 +135,38 @@ impl BowlingGame {
     fn calculate_score(&self) -> u16 {
         self.result
             .windows(3)
-            .map(BowlingGame::calculate_score_of_throw)
+            .map(Self::calculate_score_of_throw)
             .sum()
     }
 
     fn calculate_score_of_throw(x: &[ThrowResult]) -> u16 {
-        let mut score = 0;
+        Self::calculate_completed_strike_or_zero(x)
+            + Self::calculate_completed_spare_or_zero(x)
+            + Self::calculate_normal_hits_or_zero(x)
+    }
+
+    fn calculate_completed_strike_or_zero(x: &[ThrowResult]) -> u16 {
         if let [ThrowResult::Strike, a @ _, b @ _] = x {
-            score += 10 + a.to_score() + b.to_score();
+            10 + a.to_score() + b.to_score()
+        } else {
+            0
         }
+    }
+
+    fn calculate_completed_spare_or_zero(x: &[ThrowResult]) -> u16 {
         if let [_, ThrowResult::Spare(spare), a @ _] = x {
-            score += spare + a.to_score();
+            spare + a.to_score()
+        } else {
+            0
         }
+    }
+
+    fn calculate_normal_hits_or_zero(x: &[ThrowResult]) -> u16 {
         if let [_, _, ThrowResult::Normal(normal)] = x {
-            score += *normal;
+            *normal
+        } else {
+            0
         }
-        score
     }
 }
 
