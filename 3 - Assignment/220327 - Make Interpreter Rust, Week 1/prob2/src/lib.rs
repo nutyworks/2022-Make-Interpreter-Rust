@@ -11,21 +11,31 @@ pub fn evaluate(inputs: &[CalculatorInput]) -> Option<i32> {
     let mut stack: Vec<CalculatorInput> = vec![];
 
     for input in inputs {
-        match input {
-            CalculatorInput::Value(n) => stack.push(CalculatorInput::Value(*n)),
-            operator @ _ => {
-                let (first, second) = pop_two_elements_from_stack(&mut stack)?;
-                let value = CalculatorInput::Value(calculate(first, second, operator));
-                stack.push(value);
-            }
-        }
+        handle_input(&mut stack, input)?;
     }
 
+    get_result_or_none_from_stack(&stack)
+}
+
+fn get_result_or_none_from_stack(stack: &Vec<CalculatorInput>) -> Option<i32> {
     if let [CalculatorInput::Value(result)] = &stack[..] {
         Some(*result)
     } else {
         None
     }
+}
+
+fn handle_input(stack: &mut Vec<CalculatorInput>, input: &CalculatorInput) -> Option<()> {
+    match input {
+        CalculatorInput::Value(n) => stack.push(CalculatorInput::Value(*n)),
+        operator @ _ => {
+            let (first, second) = pop_two_elements_from_stack(stack)?;
+            let value = CalculatorInput::Value(calculate(first, second, operator));
+            stack.push(value);
+        }
+    }
+
+    Some(())
 }
 
 fn calculate(a: i32, b: i32, operator: &CalculatorInput) -> i32 {
