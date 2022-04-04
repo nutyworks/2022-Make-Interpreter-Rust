@@ -4,7 +4,6 @@ pub enum Error {
     GameComplete,
 }
 
-#[derive(Clone, Copy)]
 pub enum ThrowResult {
     Normal(u16),
     Spare(u16),
