@@ -17,8 +17,8 @@ pub fn evaluate(inputs: &[CalculatorInput]) -> Option<i32> {
     get_result_or_none_from_stack(&stack)
 }
 
-fn get_result_or_none_from_stack(stack: &Vec<CalculatorInput>) -> Option<i32> {
-    if let [CalculatorInput::Value(result)] = &stack[..] {
+fn get_result_or_none_from_stack(stack: &[CalculatorInput]) -> Option<i32> {
+    if let [CalculatorInput::Value(result)] = stack {
         Some(*result)
     } else {
         None
@@ -28,7 +28,7 @@ fn get_result_or_none_from_stack(stack: &Vec<CalculatorInput>) -> Option<i32> {
 fn handle_input(stack: &mut Vec<CalculatorInput>, input: &CalculatorInput) -> Option<()> {
     match input {
         CalculatorInput::Value(n) => stack.push(CalculatorInput::Value(*n)),
-        operator @ _ => {
+        operator => {
             let (first, second) = pop_two_elements_from_stack(stack)?;
             let value = CalculatorInput::Value(calculate(first, second, operator));
             stack.push(value);

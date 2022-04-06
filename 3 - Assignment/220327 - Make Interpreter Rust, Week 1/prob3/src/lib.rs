@@ -30,6 +30,12 @@ pub struct BowlingGame {
     result: Vec<ThrowResult>,
 }
 
+impl Default for BowlingGame {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BowlingGame {
     pub fn new() -> Self {
         Self {
@@ -145,7 +151,7 @@ impl BowlingGame {
     }
 
     fn calculate_completed_strike_or_zero(x: &[ThrowResult]) -> u16 {
-        if let [ThrowResult::Strike, a @ _, b @ _] = x {
+        if let [ThrowResult::Strike, a, b] = x {
             10 + a.to_score() + b.to_score()
         } else {
             0
@@ -153,7 +159,7 @@ impl BowlingGame {
     }
 
     fn calculate_completed_spare_or_zero(x: &[ThrowResult]) -> u16 {
-        if let [_, ThrowResult::Spare(spare), a @ _] = x {
+        if let [_, ThrowResult::Spare(spare), a] = x {
             spare + a.to_score()
         } else {
             0
