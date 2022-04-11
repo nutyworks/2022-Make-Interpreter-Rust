@@ -1,14 +1,19 @@
-use std::iter::FromIterator;
+use std::{iter::FromIterator, ptr, rc::Rc};
 
 pub struct SimpleLinkedList<T> {
     // Delete this field
     // dummy is needed to avoid unused parameter error during compilation
-    dummy: ::std::marker::PhantomData<T>,
+    head: Option<Rc<Node<T>>>,
+}
+
+pub struct Node<T> {
+    item: T,
+    next: Option<Rc<Node<T>>>,
 }
 
 impl<T> SimpleLinkedList<T> {
     pub fn new() -> Self {
-        unimplemented!()
+        Self { head: None }
     }
 
     // You may be wondering why it's necessary to have is_empty()
@@ -17,34 +22,84 @@ impl<T> SimpleLinkedList<T> {
     // whereas is_empty() is almost always cheap.
     // (Also ask yourself whether len() is expensive for SimpleLinkedList)
     pub fn is_empty(&self) -> bool {
-        unimplemented!()
+        self.head.is_none()
     }
 
     pub fn len(&self) -> usize {
-        unimplemented!()
+        let mut current = self.head.clone();
+        let mut c: usize = 0;
+        loop {
+            match current {
+                Some(cur) => {
+                    current = cur.next.clone();
+                    c += 1;
+                }
+                None => break c
+            }
+        }
     }
 
-    pub fn push(&mut self, _element: T) {
-        unimplemented!()
+    pub fn push(&mut self, element: T) {
+        let new_node = Node {
+            item: element,
+            next: self.head.clone(),
+        };
+        self.head = Some(Rc::new(new_node));
     }
 
     pub fn pop(&mut self) -> Option<T> {
-        unimplemented!()
+        if let Some(head) = &self.head {
+            let item = unsafe {
+                ptr::read(&head.item)
+            };
+
+            self.head = head.next.clone();
+
+            Some(item)
+        } else {
+            None
+        }
     }
 
     pub fn peek(&self) -> Option<&T> {
-        unimplemented!()
+        if let Some(head) = &self.head {
+            Some(&head.item)
+        } else {
+            None
+        }
     }
 
     #[must_use]
     pub fn rev(self) -> SimpleLinkedList<T> {
-        unimplemented!()
+        let mut list = SimpleLinkedList { head: None };
+
+        let mut current = self.head.clone();
+        loop {
+            match current {
+                Some(cur) => {
+                    let item = unsafe {
+                        ptr::read(&cur.item)
+                    };
+                    list.push(item);
+                    current = cur.next.clone();
+                }
+                None => break
+            }
+        }
+
+        list
     }
 }
 
 impl<T> FromIterator<T> for SimpleLinkedList<T> {
-    fn from_iter<I: IntoIterator<Item = T>>(_iter: I) -> Self {
-        unimplemented!()
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let mut list = SimpleLinkedList { head: None };
+
+        for item in iter {
+            list.push(item);
+        }
+
+        list
     }
 }
 
@@ -60,8 +115,15 @@ impl<T> FromIterator<T> for SimpleLinkedList<T> {
 // demands more of the student than we expect at this point in the track.
 
 impl<T> From<SimpleLinkedList<T>> for Vec<T> {
-    fn from(mut _linked_list: SimpleLinkedList<T>) -> Vec<T> {
-        unimplemented!()
+    fn from(linked_list: SimpleLinkedList<T>) -> Vec<T> {
+        let mut vec = vec![];
+        let mut rev_list = linked_list.rev();
+
+        while !rev_list.is_empty() {
+            vec.push(rev_list.pop().unwrap());
+        }
+
+        vec
     }
 }
 
