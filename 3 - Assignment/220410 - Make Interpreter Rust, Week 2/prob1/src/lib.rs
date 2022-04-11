@@ -26,19 +26,28 @@ pub fn word_count(words: &str) -> HashMap<String, u32> {
     let mut quote: Option<usize> = None;
 
     for (i, c) in words.char_indices() {
-        if c.is_alphanumeric() {
-            if start.is_none() {
-                start = Some(i);
-            }
-        } else if start.is_some() && quote.is_none() && c == '\'' {
+        let is_next_alphanumeric = {
+            let next = words.as_bytes().get(i + 1).map(|&x| x as char);
+            next.is_some() && next.unwrap().is_alphanumeric()
+        };
+
+        if c.is_alphanumeric() && start.is_none() {
+            start = Some(i);
+        } else if c == '\'' && is_next_alphanumeric && start.is_some() && quote.is_none() {
             quote = Some(i);
-        } else {
-            let entry = hashmap.entry(words[start.unwrap()..i].to_string()).or_insert(0u32);
+        } else if start.is_some() && !c.is_alphanumeric() {
+            let word = words[start.unwrap()..i].to_lowercase().to_string();
+            let entry = hashmap.entry(word).or_insert(0u32);
             *entry += 1;
 
-            start = None;
-            quote = None;
+            (start, quote) = (None, None);
         }
+    }
+
+    if start.is_some() {
+        let key = words[start.unwrap()..].to_lowercase().to_string();
+        let entry = hashmap.entry(key).or_insert(0u32);
+        *entry += 1;
     }
 
     hashmap
